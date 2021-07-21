@@ -1,8 +1,8 @@
-# Deno Sponsor's Toolkit
+# Sponsor's Toolkit
 
 Hello there!
 
-This is the Deno Sponsor's Toolkit which is a collection of tools that I've
+This is the my Sponsor's Toolkit which is a collection of tools that I've
 made just for *you* my awesome [sponsors](https://github.com/sponsors/caspervonb).
 
 ## Getting Started
