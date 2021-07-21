@@ -2,7 +2,7 @@
 
 Hello there!
 
-This is the my Sponsor's Toolkit which is a collection of tools that I've
+This is my sponsor's toolkit which is a collection of tools that I've
 made just for *you* my awesome [sponsors](https://github.com/sponsors/caspervonb).
 
 ## Getting Started
