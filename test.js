@@ -9,7 +9,7 @@ import {
 
 import { serve } from "https://deno.land/std@0.102.0/http/server.ts";
 import { serveFile } from "https://deno.land/std@0.102.0/http/file_server.ts";
-import { browse } from "https://deno.land/x/web@0.2.4/browser.ts";
+import { browse } from "./web/browser.ts";
 import { parse } from "https://deno.land/std@0.102.0/flags/mod.ts";
 import {
   basename,
