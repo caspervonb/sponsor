@@ -303,6 +303,8 @@ export async function run(options) {
     return specifier.toString();
   });
 
+  console.log("SPECIFIERS", specifiers);
+
   // TODO(caspervonb): use port 0.
   // TODO(caspervonb): support https, or preferably make sure that the browsers
   // treat this as https (allowing WebAssembly et cetera, etc).
