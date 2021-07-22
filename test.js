@@ -13,6 +13,7 @@ import { browse } from "https://deno.land/x/web@0.2.4/browser.ts";
 import { parse } from "https://deno.land/std@0.102.0/flags/mod.ts";
 import {
   basename,
+  posix,
   relative,
   resolve,
   toFileUrl,
@@ -297,7 +298,7 @@ export async function run(options) {
     );
   })).map((specifier) => {
     if (specifier.protocol == "file:") {
-      const path = relative(Deno.cwd(), specifier.pathname);
+      const path = posix.relative(Deno.cwd(), specifier.pathname);
       console.log("relatve path", path);
 
       return new URL(
