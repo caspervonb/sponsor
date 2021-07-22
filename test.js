@@ -340,6 +340,11 @@ export async function run(options) {
   }
 
   reporter.reportSummary(summary);
+
+  if (reporter.failed > 0) {
+    throw new Error("test failed");
+  }
+
   server.close();
   browser.close();
 }
