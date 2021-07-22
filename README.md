@@ -23,3 +23,17 @@ You can install sponsor by running the following command:
 ```shell
 deno install --allow-all --unstable https://deno.land/x/sponsor/main.js
 ```
+
+## Usage
+
+Run a test suite in headless Chrome:
+
+```shell
+sponsor test --headless --browser chrome
+```
+
+Run a test suite in headless Firefox:
+
+```shell
+sponsor test --headless --browser firefox
+```
