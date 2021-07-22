@@ -297,8 +297,11 @@ export async function run(options) {
     );
   })).map((specifier) => {
     if (specifier.protocol == "file:") {
+      const path = relative(Deno.cwd(), specifier.pathname);
+      console.log("relatve path", path);
+
       return new URL(
-        relative(Deno.cwd(), specifier.pathname),
+        path,
         "http://localhost:8080",
       ).toString();
     }
