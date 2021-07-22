@@ -298,20 +298,14 @@ export async function run(options) {
     );
   })).map((specifier) => {
     if (specifier.protocol == "file:") {
-      const path = posix.relative(Deno.cwd(), specifier.pathname);
-      console.log("relatve path", path);
-
       return new URL(
-        path,
+        specifier.pathname.slice(Deno.cwd().length + 1),
         "http://localhost:8080",
       ).toString();
     }
 
     return specifier.toString();
   });
-
-  console.log("SPECIFIERS", specifiers);
-  return;
 
   // TODO(caspervonb): use port 0.
   // TODO(caspervonb): support https, or preferably make sure that the browsers
