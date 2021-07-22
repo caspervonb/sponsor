@@ -1,3 +1,5 @@
+#!/usr/bin/env -S deno --allow-all --unstable
+
 import {
   gray,
   green,
