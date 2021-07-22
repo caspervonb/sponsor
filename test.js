@@ -13,8 +13,6 @@ import { browse } from "https://deno.land/x/web@0.2.4/browser.ts";
 import { parse } from "https://deno.land/std@0.102.0/flags/mod.ts";
 import {
   basename,
-  posix,
-  relative,
   resolve,
   toFileUrl,
 } from "https://deno.land/std@0.102.0/path/mod.ts";
