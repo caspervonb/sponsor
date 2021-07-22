@@ -23,6 +23,7 @@ for (const { input, output } of tests) {
         "--allow-all",
         "--unstable",
         "test.js",
+        "--headless",
         "--browser",
         "chrome",
         ...input,
