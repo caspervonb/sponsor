@@ -10,7 +10,7 @@ made just for *you* my awesome [sponsors](https://github.com/sponsors/caspervonb
 You can install sponsor by running the following command:
 
 ```shell
-deno install --allow-all --unstable https://deno.land/x/sponsor
+deno install --allow-all --unstable https://deno.land/x/sponsor/main.js
 ```
 
 ## What's Inside?
