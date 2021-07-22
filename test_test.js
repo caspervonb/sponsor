@@ -39,6 +39,7 @@ for (const { input, output } of tests) {
 
     const expected = new RegExp(
       (await Deno.readTextFile(output))
+        .replaceAll("\r\n", "\n")
         .replaceAll("(", "\\(")
         .replaceAll(")", "\\)")
         .replaceAll(".", "\\.")
