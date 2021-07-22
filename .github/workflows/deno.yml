@@ -11,7 +11,6 @@ jobs:
     runs-on: ${{ matrix.os }} # runs a test on Ubuntu, Windows and macOS
 
     strategy:
-      fail-fast: false
       matrix:
         deno: [1.x, canary]
         os: [macOS-latest, windows-latest, ubuntu-latest]
