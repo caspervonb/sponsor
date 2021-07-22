@@ -7,6 +7,15 @@ Hello there!
 This is my sponsor's toolbox which is a collection of tools that I've
 made just for *you* my awesome [sponsors](https://github.com/sponsors/caspervonb).
 
+## What's Inside?
+
+Every feature you've ever wanted in the Deno command line interface and then
+some you did not know you wanted.
+
+This serves as a playground for things I may implement in Deno at some point in
+time and things that just doesn't make sense to put into Deno like tooling for
+web browsers.
+
 ## Getting Started
 
 You can install sponsor by running the following command:
@@ -14,7 +23,3 @@ You can install sponsor by running the following command:
 ```shell
 deno install --allow-all --unstable https://deno.land/x/sponsor/main.js
 ```
-
-## What's Inside?
-
-Only every feature you've ever wanted and then some (eventually)!
