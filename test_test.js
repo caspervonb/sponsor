@@ -31,7 +31,12 @@ for (const { input, output } of tests) {
       stderr: "null",
     });
 
-    const actual = new TextDecoder().decode(await process.output());
+    const actual = new TextDecoder().decode(await process.output())
+      .replaceAll(
+        "\r\n",
+        "\n",
+      );
+
     const expected = new RegExp(
       (await Deno.readTextFile(output))
         .replaceAll("(", "\\(")
