@@ -376,6 +376,7 @@ export default async function main(argv) {
     );
   }
 
+  // TODO(caspervonb): collect specifiers
   const specifiers = inputs.map((input) => "./" + input);
 
   await run({
