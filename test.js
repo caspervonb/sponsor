@@ -18,6 +18,56 @@ import {
 } from "https://deno.land/std@0.102.0/path/mod.ts";
 import { walk } from "https://deno.land/std@0.102.0/fs/walk.ts";
 
+function createReporter() {
+  return {
+    reportPlan(plan) {
+      console.log("running %d tests from %s", plan.total, plan.origin);
+    },
+
+    reportWait(_description) {
+      // no-op.
+    },
+
+    reportResult(description, result, elapsed) {
+      const duration = gray(`(${elapsed}ms)`);
+      if (result == "ok") {
+        console.log(`test ${description.name} ... ${green("ok")} ${duration}`);
+      } else if (result == "ignored") {
+        console.log(
+          `test ${description.name} ... ${yellow("ignored")} ${duration}`,
+        );
+      } else if (result.failed) {
+        console.log(
+          `test ${description.name} ... ${red("FAILED")} ${duration}`,
+        );
+      }
+    },
+
+    reportSummary(summary) {
+      if (summary.failures.length > 0) {
+        console.log("\nfailures:");
+        for (const [description, failure] of summary.failures) {
+          console.log(description.name, failure);
+        }
+
+        console.log("\nfailures:");
+        for (const [description, _] of summary.failures) {
+          console.log(description.name);
+        }
+      }
+
+      const status = summary.failed > 0 ? red("FAILED") : green("ok");
+      console.log(
+        "\ntest result: %s. %d passed; %d failed; %d ignored; 0 measured; 0 filtered out (0ms)\n",
+        status,
+        summary.passed,
+        summary.failed,
+        summary.ignored,
+      );
+    },
+  };
+}
+
 async function collectFiles(paths, predicate) {
   const files = [];
 
@@ -315,54 +365,7 @@ export async function run(options) {
     ...options,
   });
 
-  const reporter = {
-    reportPlan(plan) {
-      console.log("running %d tests from %s", plan.total, plan.origin);
-    },
-
-    reportWait(_description) {
-      // no-op.
-    },
-
-    reportResult(description, result, elapsed) {
-      const duration = gray(`(${elapsed}ms)`);
-      if (result == "ok") {
-        console.log(`test ${description.name} ... ${green("ok")} ${duration}`);
-      } else if (result == "ignored") {
-        console.log(
-          `test ${description.name} ... ${yellow("ignored")} ${duration}`,
-        );
-      } else if (result.failed) {
-        console.log(
-          `test ${description.name} ... ${red("FAILED")} ${duration}`,
-        );
-      }
-    },
-
-    reportSummary(summary) {
-      if (summary.failures.length > 0) {
-        console.log("\nfailures:");
-        for (const [description, failure] of summary.failures) {
-          console.log(description.name, failure);
-        }
-
-        console.log("\nfailures:");
-        for (const [description, _] of summary.failures) {
-          console.log(description.name);
-        }
-      }
-
-      const status = summary.failed > 0 ? red("FAILED") : green("ok");
-      console.log(
-        "\ntest result: %s. %d passed; %d failed; %d ignored; 0 measured; 0 filtered out (0ms)\n",
-        status,
-        summary.passed,
-        summary.failed,
-        summary.ignored,
-      );
-    },
-  };
-
+  const reporter = createReporter();
   const summary = {
     passed: 0,
     ignored: 0,
