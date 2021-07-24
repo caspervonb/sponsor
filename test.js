@@ -457,7 +457,22 @@ export default async function main(argv) {
     ],
   });
 
-  // TODO(caspervonb): support fallthrough to `deno test`.
+  // Pass-through to Deno when a browser is not specified.
+  if (!browser) {
+    const process = Deno.run({
+      cmd: [
+        Deno.execPath(),
+        "test",
+        ...argv,
+      ],
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+
+    const status = await process.status();
+    Deno.exit(status.code);
+  }
+
   if (!["chrome", "firefox"].includes(browser)) {
     throw new Error(
       `Invalid browser value ${browser}, valid options are 'chrome' and 'firefox'`,
