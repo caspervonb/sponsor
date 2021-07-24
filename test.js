@@ -324,36 +324,37 @@ export async function run(options) {
     return;
   }
 
-  const specifiers = (await collectSpecifiers(options.inputs, (path) => {
-    const base = basename(path);
+  const specifiers =
+    (await collectSpecifiers(options.inputs ?? ["."], (path) => {
+      const base = basename(path);
 
-    return (
-      base.endsWith("_test.ts") ||
-      base.endsWith("_test.tsx") ||
-      base.endsWith("_test.js") ||
-      base.endsWith("_test.mjs") ||
-      base.endsWith("_test.jsx") ||
-      base.endsWith(".test.ts") ||
-      base.endsWith(".test.tsx") ||
-      base.endsWith(".test.js") ||
-      base.endsWith(".test.mjs") ||
-      base.endsWith(".test.jsx") ||
-      base == "test.ts" ||
-      base == "test.tsx" ||
-      base == "test.js" ||
-      base == "test.mjs" ||
-      base == "test.jsx"
-    );
-  })).map((specifier) => {
-    if (specifier.protocol == "file:") {
-      return new URL(
-        specifier.pathname.slice(Deno.cwd().length + 1),
-        "http://localhost:8080",
-      ).toString();
-    }
+      return (
+        base.endsWith("_test.ts") ||
+        base.endsWith("_test.tsx") ||
+        base.endsWith("_test.js") ||
+        base.endsWith("_test.mjs") ||
+        base.endsWith("_test.jsx") ||
+        base.endsWith(".test.ts") ||
+        base.endsWith(".test.tsx") ||
+        base.endsWith(".test.js") ||
+        base.endsWith(".test.mjs") ||
+        base.endsWith(".test.jsx") ||
+        base == "test.ts" ||
+        base == "test.tsx" ||
+        base == "test.js" ||
+        base == "test.mjs" ||
+        base == "test.jsx"
+      );
+    })).map((specifier) => {
+      if (specifier.protocol == "file:") {
+        return new URL(
+          specifier.pathname.slice(Deno.cwd().length + 1),
+          "http://localhost:8080",
+        ).toString();
+      }
 
-    return specifier.toString();
-  });
+      return specifier.toString();
+    });
 
   // TODO(caspervonb): use port 0.
   // TODO(caspervonb): support https, or preferably make sure that the browsers
@@ -477,10 +478,6 @@ export default async function main(argv) {
     throw new Error(
       `Invalid browser value ${browser}, valid options are 'chrome' and 'firefox'`,
     );
-  }
-
-  if (inputs.length == 0) {
-    inputs.push(".");
   }
 
   await run({
