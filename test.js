@@ -324,6 +324,10 @@ export async function run(options) {
     return;
   }
 
+  if (options.inputs.length == 0) {
+    options.inputs.push(".");
+  }
+
   const specifiers = (await collectSpecifiers(options.inputs, (path) => {
     const base = basename(path);
 
@@ -477,10 +481,6 @@ export default async function main(argv) {
     throw new Error(
       `Invalid browser value ${browser}, valid options are 'chrome' and 'firefox'`,
     );
-  }
-
-  if (inputs.length == 0) {
-    inputs.push(".");
   }
 
   await run({
