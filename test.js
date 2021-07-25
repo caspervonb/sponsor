@@ -97,7 +97,6 @@ function createRequestHandler(options) {
 
     const inspector = new URL("./web/inspector.js", import.meta.url);
     const body = `
-      // ts-ignore-file
       import { open, inspect } from "${inspector}";
 
       function error(exceptionDetails) {
