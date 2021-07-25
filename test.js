@@ -101,7 +101,6 @@ function createRequestHandler(options) {
       import { open, inspect } from "${inspector}";
 
       function error(exceptionDetails) {
-        console.log(exceptionDetails);
         // TODO(caspervonb): make this an error
         return new Error(JSON.stringify(exceptionDetails));
       }
