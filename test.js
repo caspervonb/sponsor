@@ -171,7 +171,7 @@ function createRequestHandler({ inputs = [] }) {
         }
       }
 
-    console.log("Import real test module");
+    console.log("Import test module");
     {
       const evaluateReturnObject = await inspector.send(
         "Runtime.evaluate", {
@@ -202,7 +202,6 @@ function createRequestHandler({ inputs = [] }) {
         throw error(getPropertiesReturnObject.exceptionDetails);
       }
 
-      const tests = [];
       for (const propertyDescriptor of getPropertiesReturnObject.result) {
         if (!propertyDescriptor.enumerable) {
           continue;
@@ -222,6 +221,7 @@ function createRequestHandler({ inputs = [] }) {
           ignore: false,
           once: false,
           fn: function() {
+            throw new Error("test function is not defined");
           },
         };
 
@@ -246,34 +246,16 @@ function createRequestHandler({ inputs = [] }) {
           }
         }
 
-        tests.push(definition);
+        Deno.test(definition);
       }
 
-      let pending = tests.length;
-      let interval = setInterval(function() {
-        if (pending > 0) {
-          return;
-        }
-
-        console.log("CLOSING");
-        close(target.id);
-        inspector.close();
-        clearInterval(interval);
-      }, 1000);
-
-      for (const test of tests) {
-        const fn = test.fn;
-        test.fn = async function() {
-          try {
-            await fn();
-          } finally {
-            pending--;
-            console.log(pending);
-          }
-        };
-
-        Deno.test(test);
-      }
+      const internal = Deno[Deno.internal];
+      const { runTests } = internal;
+      internal.runTests = function() {
+        return runTests.apply(internal, arguments).finally(() => {
+          inspector.close();
+        });
+      };
     `;
 
     return request.respond({
