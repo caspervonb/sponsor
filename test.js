@@ -389,14 +389,26 @@ export async function run(options) {
     suffix: ".json",
   });
 
-  await Deno.writeTextFile(
-    importMap,
-    JSON.stringify({
-      imports: {
-        "file:///": `http://localhost:${port}/`,
-      },
-    }),
-  );
+  if (Deno.build.os == "windows") {
+    await Deno.writeTextFile(
+      importMap,
+      JSON.stringify({
+        imports: {
+          "file:///C:/": `http://localhost:${port}/C:/`,
+          "file:///D:/": `http://localhost:${port}/D:/`,
+        },
+      }),
+    );
+  } else {
+    await Deno.writeTextFile(
+      importMap,
+      JSON.stringify({
+        imports: {
+          "file:///": `http://localhost:${port}/`,
+        },
+      }),
+    );
+  }
 
   const tester = Deno.run({
     cmd: [
