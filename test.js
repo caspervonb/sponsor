@@ -124,7 +124,7 @@ function createRequestHandler({ inputs = [] }) {
 
     const inspector = new URL("./web/inspector.js", import.meta.url);
     const body = `
-      import { open, inspect } from "${inspector}";
+      import { open, close, inspect } from "${inspector}";
 
       function error(exceptionDetails) {
         // TODO(caspervonb): make this an error
@@ -136,13 +136,9 @@ function createRequestHandler({ inputs = [] }) {
           fn()
           .then(resolve)
           .catch((error) => {
-            if (!attempts) {
-              throw error;
-            }
-
             setTimeout(() => {
-              retry(fn, ms, --attempts).then(resolve);
-            }, ms, attempts);
+              retry(fn, ms,).then(resolve);
+            }, ms);
           });
         });
       }
@@ -159,8 +155,12 @@ function createRequestHandler({ inputs = [] }) {
         const evaluateReturnObject = await inspector.send("Runtime.evaluate", {
           expression: \`
             new Promise((resolve, reject) => {
-              window.addEventListener('load', resolve);
-              window.addEventListener('error', reject);
+              if (window.readyState == "complete") {
+                resolve();
+              } else {
+                window.addEventListener('load', resolve);
+                window.addEventListener('error', reject);
+              }
             })
           \`,
           awaitPromise: true,
@@ -256,6 +256,7 @@ function createRequestHandler({ inputs = [] }) {
         }
 
         console.log("CLOSING");
+        close(target.id);
         inspector.close();
         clearInterval(interval);
       }, 1000);
