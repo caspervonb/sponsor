@@ -386,7 +386,6 @@ export async function run(options) {
   });
 
   const importMap = await Deno.makeTempFile({
-    dir: Deno.cwd(),
     prefix: "import_map-",
     suffix: ".json",
   });
@@ -415,7 +414,6 @@ export async function run(options) {
   });
 
   const status = await tester.status();
-  await Deno.remove(importMap);
 
   server.close();
   browser.close();
