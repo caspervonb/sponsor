@@ -15,6 +15,18 @@ import {
 import "./web/inspector.js";
 
 function createRequestHandler({ inputs = [] }) {
+  const normalizeFilePath = (url) => {
+    if (url.startsWith("/C:/")) {
+      return url.slice(1);
+    }
+
+    if (url.startsWith("/D:/")) {
+      return url.slice(1);
+    }
+
+    return url;
+  };
+
   const isTestInput = (url) => {
     for (const input of inputs) {
       if (input.startsWith("http:") || input.startsWith("https:")) {
@@ -269,7 +281,7 @@ function createRequestHandler({ inputs = [] }) {
       new TextEncoder().encode(`Emit ${request.url}\n`),
     );
 
-    const url = toFileUrl(request.url);
+    const url = toFileUrl(normalizeFilePath(request.url));
     const key = url + ".js";
     if (!emitCache[key]) {
       const { diagnostics, files } = await Deno.emit(url, {
@@ -312,7 +324,8 @@ function createRequestHandler({ inputs = [] }) {
       new TextEncoder().encode(`Serve ${request.url}\n`),
     );
 
-    return serveFile(request, request.url).then((response) => {
+    const path = normalizeFilePath(request.url);
+    return serveFile(request, path).then((response) => {
       return request.respond(response);
     }).catch((error) => {
       return request.respond({ body: error.message });
