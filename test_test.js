@@ -28,12 +28,10 @@ for (const { input, output } of tests) {
         "chrome",
         ...input,
       ],
-      stdout: "inherit",
-      stderr: "inherit",
+      stdout: "piped",
+      stderr: "null",
     });
 
-    await process.status();
-    /*
     const actual = new TextDecoder().decode(await process.output())
       .replaceAll(
         "\r\n",
@@ -52,9 +50,9 @@ for (const { input, output } of tests) {
           ".+",
         ),
     );
-    */
+
     process.close();
 
-    // assertMatch(actual, expected);
+    assertMatch(actual, expected);
   });
 }
