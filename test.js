@@ -131,21 +131,25 @@ function createRequestHandler({ inputs = [] }) {
         return new Error(JSON.stringify(exceptionDetails));
       }
 
-      function retry(fn, ms) {
+      function retry(fn, ms, attempts) {
         return new Promise(resolve => {
           fn()
           .then(resolve)
           .catch((error) => {
+            if (!attempts) {
+              throw error;
+            }
+
             setTimeout(() => {
-              retry(fn, ms).then(resolve);
-            }, ms);
+              retry(fn, ms, --attempts).then(resolve);
+            }, ms, attempts);
           });
         });
       }
 
       const target = await retry(() => {
         return open("http://localhost:8080");
-      }, 1000);
+      }, 1000, 10);
 
       const inspector = inspect(target.webSocketDebuggerUrl);
       await inspector.send("Runtime.enable");
