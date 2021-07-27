@@ -109,6 +109,7 @@ function createRequestHandler({ inputs = [] }) {
           });
 
           globalThis.Deno = {
+            noColor: ${Deno.noColor},
             test,
           };
         </script>
@@ -245,8 +246,15 @@ function createRequestHandler({ inputs = [] }) {
                 awaitPromise: true,
               });
 
-              if (callFunctionOnResultObject.exceptionDetails) {
-                throw error(callFunctionOnResultObject.exceptionDetails);
+              const { exceptionDetails } = callFunctionOnResultObject;
+              if (exceptionDetails) {
+                const callFunctionOnResultObject = await inspector.send("Runtime.callFunctionOn", {
+                  functionDeclaration: "function() { return this.message.toString() + this.stack.toString() }",
+                  objectId: exceptionDetails.exception.objectId,
+                  returnByValue: true,
+                });
+
+                throw callFunctionOnResultObject.result.value;
               }
             };
           } else if (typeof propertyDescriptor.value.value != "undefined") {
