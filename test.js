@@ -4,7 +4,11 @@ import { serve } from "https://deno.land/std@0.102.0/http/server.ts";
 import { serveFile } from "https://deno.land/std@0.102.0/http/file_server.ts";
 import { browse } from "./web/browser.ts";
 import { parse } from "https://deno.land/std@0.102.0/flags/mod.ts";
-import { resolve, toFileUrl } from "https://deno.land/std@0.102.0/path/mod.ts";
+import {
+  relative,
+  resolve,
+  toFileUrl,
+} from "https://deno.land/std@0.102.0/path/mod.ts";
 
 // The web inspector is used in generated code, so we include it here to have
 // it cached ahead of time.
@@ -89,6 +93,12 @@ function createRequestHandler(options) {
 
     return request.respond({
       body,
+    });
+  };
+
+  const handleFavicon = (request) => {
+    return request.respond({
+      body: "",
     });
   };
 
@@ -256,11 +266,11 @@ function createRequestHandler(options) {
       new TextEncoder().encode(`Emit ${request.url}\n`),
     );
 
-    const path = request.url.slice(1);
-    const key = toFileUrl(resolve(path + ".js"));
-
+    const url = toFileUrl(request.url);
+    const key = url + ".js";
+    console.log({ url, key });
     if (!emitCache[key]) {
-      const { diagnostics, files } = await Deno.emit(path, {
+      const { diagnostics, files } = await Deno.emit(url, {
         compilerOptions: {
           sourceMap: false,
           inlineSources: true,
@@ -277,6 +287,8 @@ function createRequestHandler(options) {
 
       Object.assign(emitCache, files);
     }
+
+    console.log(emitCache);
 
     const body = emitCache[key];
     if (!body) {
@@ -300,7 +312,9 @@ function createRequestHandler(options) {
       new TextEncoder().encode(`Serve ${request.url}\n`),
     );
 
-    return serveFile(request, request.url.slice(1)).then((response) => {
+    console.log("url", request.url);
+
+    return serveFile(request, request.url).then((response) => {
       return request.respond(response);
     }).catch((error) => {
       return request.respond({ body: error.message });
@@ -316,6 +330,10 @@ function createRequestHandler(options) {
 
     if (request.url == "/") {
       return handleIndex(request);
+    }
+
+    if (request.url == "/favicon.ico") {
+      return handleFavicon(request);
     }
 
     if (isDeno && isProxy(request.url)) {
@@ -377,7 +395,7 @@ export async function run(options) {
     importMap,
     JSON.stringify({
       imports: {
-        "./": `http://localhost:${port}/`,
+        "file:": `http://localhost:${port}/`,
       },
     }),
   );
