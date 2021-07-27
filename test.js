@@ -155,7 +155,7 @@ function createRequestHandler({ inputs = [] }) {
         const evaluateReturnObject = await inspector.send("Runtime.evaluate", {
           expression: \`
             new Promise((resolve, reject) => {
-              if (window.readyState == "complete") {
+              if (document.readyState == "complete") {
                 resolve();
               } else {
                 window.addEventListener('load', resolve);
