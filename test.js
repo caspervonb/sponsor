@@ -93,7 +93,10 @@ function createRequestHandler(options) {
   };
 
   const handleProxy = (request) => {
-    console.log("handleProxy");
+    Deno.writeAllSync(
+      Deno.stderr,
+      new TextEncoder().encode(`Proxy ${request.url}\n`),
+    );
 
     const inspector = new URL("./web/inspector.js", import.meta.url);
     const body = `
@@ -248,11 +251,14 @@ function createRequestHandler(options) {
 
   const emitCache = {};
   const handleEmit = async (request) => {
-    console.log("handleEmit");
+    Deno.writeAllSync(
+      Deno.stderr,
+      new TextEncoder().encode(`Emit ${request.url}\n`),
+    );
+
     const path = request.url.slice(1);
     const key = toFileUrl(resolve(path + ".js"));
 
-    console.log(key);
     if (!emitCache[key]) {
       const { diagnostics, files } = await Deno.emit(path, {
         compilerOptions: {
@@ -289,6 +295,11 @@ function createRequestHandler(options) {
   };
 
   const handleFile = (request) => {
+    Deno.writeAllSync(
+      Deno.stderr,
+      new TextEncoder().encode(`Serve ${request.url}\n`),
+    );
+
     return serveFile(request, request.url.slice(1)).then((response) => {
       return request.respond(response);
     }).catch((error) => {
@@ -297,8 +308,6 @@ function createRequestHandler(options) {
   };
 
   return function handleRequest(request) {
-    console.log(request.method, request.url);
-
     const isDeno = request
       .headers
       .get("user-agent")
