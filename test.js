@@ -14,38 +14,52 @@ import {
 // it cached ahead of time.
 import "./web/inspector.js";
 
-function isProxy(pathname) {
-  const basename = pathname.split("/").at(-1);
+function createRequestHandler({ inputs = [] }) {
+  const isTestInput = (url) => {
+    for (const input of inputs) {
+      if (input.startsWith("http:") || input.startsWith("https:")) {
+        continue;
+      }
 
-  return (
-    basename.endsWith("_test.ts") ||
-    basename.endsWith("_test.tsx") ||
-    basename.endsWith("_test.js") ||
-    basename.endsWith("_test.mjs") ||
-    basename.endsWith("_test.jsx") ||
-    basename.endsWith(".test.ts") ||
-    basename.endsWith(".test.tsx") ||
-    basename.endsWith(".test.js") ||
-    basename.endsWith(".test.mjs") ||
-    basename.endsWith(".test.jsx") ||
-    basename == "test.ts" ||
-    basename == "test.tsx" ||
-    basename == "test.js" ||
-    basename == "test.mjs" ||
-    basename == "test.jsx"
-  );
-}
+      if (toFileUrl(resolve(input)).href == toFileUrl(url).href) {
+        return true;
+      }
+    }
 
-function isEmit(pathname) {
-  return (
-    pathname.endsWith("js") ||
-    pathname.endsWith("jsx") ||
-    pathname.endsWith("ts") ||
-    pathname.endsWith("tsx")
-  );
-}
+    return false;
+  };
 
-function createRequestHandler(options) {
+  const isTestSpecifier = (url) => {
+    const basename = url.split("/").at(-1);
+
+    return (
+      basename.endsWith("_test.ts") ||
+      basename.endsWith("_test.tsx") ||
+      basename.endsWith("_test.js") ||
+      basename.endsWith("_test.mjs") ||
+      basename.endsWith("_test.jsx") ||
+      basename.endsWith(".test.ts") ||
+      basename.endsWith(".test.tsx") ||
+      basename.endsWith(".test.js") ||
+      basename.endsWith(".test.mjs") ||
+      basename.endsWith(".test.jsx") ||
+      basename == "test.ts" ||
+      basename == "test.tsx" ||
+      basename == "test.js" ||
+      basename == "test.mjs" ||
+      basename == "test.jsx"
+    );
+  };
+
+  const isEmitSpecifier = (url) => {
+    return (
+      url.endsWith("js") ||
+      url.endsWith("jsx") ||
+      url.endsWith("ts") ||
+      url.endsWith("tsx")
+    );
+  };
+
   const handleIndex = (request) => {
     const body = `
       <html>
@@ -322,12 +336,6 @@ function createRequestHandler(options) {
   };
 
   return function handleRequest(request) {
-    const isDeno = request
-      .headers
-      .get("user-agent")
-      .toLowerCase()
-      .includes("deno");
-
     if (request.url == "/") {
       return handleIndex(request);
     }
@@ -336,11 +344,18 @@ function createRequestHandler(options) {
       return handleFavicon(request);
     }
 
-    if (isDeno && isProxy(request.url)) {
+    const isDeno = request
+      .headers
+      .get("user-agent")
+      .toLowerCase()
+      .includes("deno");
+
+    const isTest = isTestSpecifier(request.url) || isTestInput(request.url);
+    if (isDeno && isTest) {
       return handleProxy(request);
     }
 
-    if (!isDeno && isEmit(request.url)) {
+    if (!isDeno && isEmitSpecifier(request.url)) {
       return handleEmit(request);
     }
 
@@ -374,7 +389,7 @@ export async function run(options) {
   // treat this as https (allowing WebAssembly et cetera, etc).
   const port = 8080;
   const server = await serve({ port });
-  const handleRequest = createRequestHandler({});
+  const handleRequest = createRequestHandler(options);
   (async () => {
     for await (const request of server) {
       handleRequest(request);
