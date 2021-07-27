@@ -150,7 +150,6 @@ function createRequestHandler({ inputs = [] }) {
       const inspector = inspect(target.webSocketDebuggerUrl);
       await inspector.send("Runtime.enable");
 
-      console.log("Wait for page load");
       {
         const evaluateReturnObject = await inspector.send("Runtime.evaluate", {
           expression: \`
@@ -171,7 +170,6 @@ function createRequestHandler({ inputs = [] }) {
         }
       }
 
-    console.log("Import test module");
     {
       const evaluateReturnObject = await inspector.send(
         "Runtime.evaluate", {
@@ -238,8 +236,6 @@ function createRequestHandler({ inputs = [] }) {
               if (callFunctionOnResultObject.exceptionDetails) {
                 throw error(callFunctionOnResultObject.exceptionDetails);
               }
-
-              await Deno.writeAll(Deno.stderr, new TextEncoder().encode("test done"));
             };
           } else if (typeof propertyDescriptor.value.value != "undefined") {
             definition[propertyDescriptor.name] = propertyDescriptor.value.value;
