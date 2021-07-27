@@ -29,7 +29,7 @@ for (const { input, output } of tests) {
         ...input,
       ],
       stdout: "piped",
-      stderr: "null",
+      stderr: "inherit",
     });
 
     const actual = new TextDecoder().decode(await process.output())
