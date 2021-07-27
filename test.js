@@ -154,6 +154,7 @@ function createRequestHandler({ inputs = [] }) {
       const inspector = inspect(target.webSocketDebuggerUrl);
       await inspector.send("Runtime.enable");
 
+      console.log("Wait for page load");
       {
         const evaluateReturnObject = await inspector.send("Runtime.evaluate", {
           expression: \`
@@ -170,6 +171,7 @@ function createRequestHandler({ inputs = [] }) {
         }
       }
 
+    console.log("Import real test module");
     {
       const evaluateReturnObject = await inspector.send(
         "Runtime.evaluate", {
