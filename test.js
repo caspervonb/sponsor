@@ -255,6 +255,7 @@ function createRequestHandler({ inputs = [] }) {
           return;
         }
 
+        console.log("CLOSING");
         inspector.close();
         clearInterval(interval);
       }, 1000);
