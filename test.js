@@ -232,6 +232,8 @@ function createRequestHandler({ inputs = [] }) {
               if (callFunctionOnResultObject.exceptionDetails) {
                 throw error(callFunctionOnResultObject.exceptionDetails);
               }
+
+              await Deno.writeAll(Deno.stderr, new TextEncoder().encode("test done"));
             };
           } else if (typeof propertyDescriptor.value.value != "undefined") {
             definition[propertyDescriptor.name] = propertyDescriptor.value.value;
