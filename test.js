@@ -282,7 +282,6 @@ function createRequestHandler({ inputs = [] }) {
 
     const url = toFileUrl(request.url);
     const key = url + ".js";
-    console.log({ url, key });
     if (!emitCache[key]) {
       const { diagnostics, files } = await Deno.emit(url, {
         compilerOptions: {
@@ -301,8 +300,6 @@ function createRequestHandler({ inputs = [] }) {
 
       Object.assign(emitCache, files);
     }
-
-    console.log(emitCache);
 
     const body = emitCache[key];
     if (!body) {
@@ -325,8 +322,6 @@ function createRequestHandler({ inputs = [] }) {
       Deno.stderr,
       new TextEncoder().encode(`Serve ${request.url}\n`),
     );
-
-    console.log("url", request.url);
 
     return serveFile(request, request.url).then((response) => {
       return request.respond(response);
