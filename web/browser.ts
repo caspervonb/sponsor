@@ -14,8 +14,8 @@ export function browse(options: BrowseOptions): Deno.Process {
       browserPath(options),
       ...browserArgs(options),
     ],
-    stdout: "null",
-    stderr: "null",
+    stdout: Deno.stderr.rid,
+    stderr: Deno.stderr.rid,
   });
 }
 
