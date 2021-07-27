@@ -79,6 +79,7 @@ function chromeArgs(options: BrowseOptions): string[] {
   if (options.headless) {
     args.push(
       "--headless",
+      "--disable-gpu",
     );
   }
 
