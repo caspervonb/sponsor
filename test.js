@@ -267,6 +267,7 @@ function createRequestHandler({ inputs = [] }) {
             await fn();
           } finally {
             pending--;
+            console.log(pending);
           }
         };
 
