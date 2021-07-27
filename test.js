@@ -404,7 +404,7 @@ export async function run(options) {
     importMap,
     JSON.stringify({
       imports: {
-        "file://": `http://localhost:${port}/`,
+        "file:///": `http://localhost:${port}/`,
       },
     }),
   );
