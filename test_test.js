@@ -9,6 +9,10 @@ const tests = [
     input: ["testdata/test/ignore.ts"],
     output: "testdata/test/ignore.out",
   },
+  {
+    input: ["testdata/test/dom.ts"],
+    output: "testdata/test/dom.out",
+  },
 ];
 
 for (const { input, output } of tests) {
