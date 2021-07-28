@@ -24,6 +24,12 @@ You can install sponsor by running the following command:
 deno install --allow-all --unstable https://deno.land/x/sponsor/main.js
 ```
 
+There is also a canary version available, which you can install with this command:
+
+```shell
+deno install --allow-all --unstable https://sponsor.land/main.js
+```
+
 ## Usage
 
 Run a test suite in headless Chrome:
