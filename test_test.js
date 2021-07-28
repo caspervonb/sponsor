@@ -15,48 +15,55 @@ const tests = [
   },
 ];
 
-for (const { input, output } of tests) {
-  Deno.test(`${input} => ${output}`, async function () {
-    const process = Deno.run({
-      env: {
-        "NO_COLOR": "1",
-      },
-      cmd: [
-        Deno.execPath(),
-        "run",
-        "--allow-all",
-        "--unstable",
-        "test.js",
-        "--headless",
-        "--browser",
-        "chrome",
-        ...input,
-      ],
-      stdout: "piped",
-      stderr: "inherit",
-    });
+const browsers = [
+  "chrome",
+  "firefox",
+];
 
-    const actual = new TextDecoder().decode(await process.output())
-      .replaceAll(
-        "\r\n",
-        "\n",
+for (const browser of browsers) {
+  for (const { input, output } of tests) {
+    Deno.test(`${browser}: ${input} => ${output}`, async function () {
+      const process = Deno.run({
+        env: {
+          "NO_COLOR": "1",
+        },
+        cmd: [
+          Deno.execPath(),
+          "run",
+          "--allow-all",
+          "--unstable",
+          "test.js",
+          "--headless",
+          "--browser",
+          browser,
+          ...input,
+        ],
+        stdout: "piped",
+        stderr: "inherit",
+      });
+
+      const actual = new TextDecoder().decode(await process.output())
+        .replaceAll(
+          "\r\n",
+          "\n",
+        );
+
+      const expected = new RegExp(
+        (await Deno.readTextFile(output))
+          .replaceAll("\r\n", "\n")
+          .replaceAll("(", "\\(")
+          .replaceAll(")", "\\)")
+          .replaceAll(".", "\\.")
+          .replaceAll("/", "\\/")
+          .replaceAll(
+            "[WILDCARD]",
+            ".+",
+          ),
       );
 
-    const expected = new RegExp(
-      (await Deno.readTextFile(output))
-        .replaceAll("\r\n", "\n")
-        .replaceAll("(", "\\(")
-        .replaceAll(")", "\\)")
-        .replaceAll(".", "\\.")
-        .replaceAll("/", "\\/")
-        .replaceAll(
-          "[WILDCARD]",
-          ".+",
-        ),
-    );
+      process.close();
 
-    process.close();
-
-    assertMatch(actual, expected);
-  });
+      assertMatch(actual, expected);
+    });
+  }
 }
