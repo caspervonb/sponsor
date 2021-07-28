@@ -298,6 +298,12 @@ function createRequestHandler({ check, inputs = [] }) {
           sourceMap: false,
           inlineSources: true,
           inlineSourceMap: true,
+          lib: [
+            "deno.ns",
+            "dom",
+            "dom.iterable",
+            "esnext",
+          ],
         },
       });
 
@@ -416,6 +422,25 @@ export async function run(options) {
     ...options,
   });
 
+  const config = await Deno.makeTempFile({
+    prefix: "config",
+    suffix: ".json",
+  });
+
+  await Deno.writeTextFile(
+    config,
+    JSON.stringify({
+      compilerOptions: {
+        lib: [
+          "deno.ns",
+          "dom",
+          "dom.iterable",
+          "esnext",
+        ],
+      },
+    }),
+  );
+
   const importMap = await Deno.makeTempFile({
     prefix: "import_map-",
     suffix: ".json",
@@ -449,6 +474,7 @@ export async function run(options) {
       "--reload",
       "--allow-all",
       "--unstable",
+      "--config=" + config,
       "--import-map=" + importMap,
       ...args,
     ],
