@@ -1,135 +1,86 @@
 #!/usr/bin/env -S deno --allow-all --unstable
 
-import {
-  gray,
-  green,
-  red,
-  yellow,
-} from "https://deno.land/std@0.102.0/fmt/colors.ts";
-
 import { serve } from "https://deno.land/std@0.102.0/http/server.ts";
 import { serveFile } from "https://deno.land/std@0.102.0/http/file_server.ts";
 import { browse } from "./web/browser.ts";
 import { parse } from "https://deno.land/std@0.102.0/flags/mod.ts";
 import {
-  basename,
+  relative,
   resolve,
   toFileUrl,
 } from "https://deno.land/std@0.102.0/path/mod.ts";
-import { walk } from "https://deno.land/std@0.102.0/fs/walk.ts";
 
-function createReporter() {
-  return {
-    reportPlan(plan) {
-      console.log("running %d tests from %s", plan.total, plan.origin);
-    },
+// The web inspector is used in generated code, so we include it here to have
+// it cached ahead of time.
+import "./web/inspector.js";
 
-    reportWait(_description) {
-      // no-op.
-    },
+function createRequestHandler({ check, inputs = [] }) {
+  const normalizeFilePath = (url) => {
+    if (url.startsWith("/C:/")) {
+      return url.slice(1);
+    }
 
-    reportResult(description, result, elapsed) {
-      const duration = gray(`(${elapsed}ms)`);
-      if (result == "ok") {
-        console.log(`test ${description.name} ... ${green("ok")} ${duration}`);
-      } else if (result == "ignored") {
-        console.log(
-          `test ${description.name} ... ${yellow("ignored")} ${duration}`,
-        );
-      } else if (result.failed) {
-        console.log(
-          `test ${description.name} ... ${red("FAILED")} ${duration}`,
-        );
-      }
-    },
+    if (url.startsWith("/D:/")) {
+      return url.slice(1);
+    }
 
-    reportSummary(summary) {
-      if (summary.failures.length > 0) {
-        console.log("\nfailures:");
-        for (const [description, failure] of summary.failures) {
-          console.log(description.name, failure);
-        }
-
-        console.log("\nfailures:");
-        for (const [description, _] of summary.failures) {
-          console.log(description.name);
-        }
-      }
-
-      const status = summary.failed > 0 ? red("FAILED") : green("ok");
-      console.log(
-        "\ntest result: %s. %d passed; %d failed; %d ignored; 0 measured; 0 filtered out (0ms)\n",
-        status,
-        summary.passed,
-        summary.failed,
-        summary.ignored,
-      );
-    },
+    return url;
   };
-}
 
-async function collectFiles(paths, predicate) {
-  const files = [];
+  const isTestInput = (url) => {
+    for (const input of inputs) {
+      if (input.startsWith("http:") || input.startsWith("https:")) {
+        continue;
+      }
 
-  if (paths.length == 0) {
-    path.push(".");
-  }
-
-  for (const path of paths) {
-    for await (const entry of walk(path)) {
-      if (entry.isFile) {
-        files.push(entry.path);
+      if (toFileUrl(resolve(input)).href == toFileUrl(url).href) {
+        return true;
       }
     }
-  }
 
-  return files.filter(predicate);
-}
+    return false;
+  };
 
-function isRemoteSpecifier(url) {
-  return url.startsWith("http://") || url.startsWith("https://");
-}
+  const isTestSpecifier = (url) => {
+    const basename = url.split("/").at(-1);
 
-async function collectSpecifiers(inputs, predicate) {
-  const specifiers = [];
+    return (
+      basename.endsWith("_test.ts") ||
+      basename.endsWith("_test.tsx") ||
+      basename.endsWith("_test.js") ||
+      basename.endsWith("_test.mjs") ||
+      basename.endsWith("_test.jsx") ||
+      basename.endsWith(".test.ts") ||
+      basename.endsWith(".test.tsx") ||
+      basename.endsWith(".test.js") ||
+      basename.endsWith(".test.mjs") ||
+      basename.endsWith(".test.jsx") ||
+      basename == "test.ts" ||
+      basename == "test.tsx" ||
+      basename == "test.js" ||
+      basename == "test.mjs" ||
+      basename == "test.jsx"
+    );
+  };
 
-  const paths = inputs.filter((x) => !isRemoteSpecifier(x));
-  const urls = inputs.filter((x) => isRemoteSpecifier(x));
+  const isEmitSpecifier = (url) => {
+    return (
+      url.endsWith("js") ||
+      url.endsWith("jsx") ||
+      url.endsWith("ts") ||
+      url.endsWith("tsx")
+    );
+  };
 
-  for (const path of paths) {
-    const info = await Deno.stat(path);
-    if (info.isDirectory) {
-      const files = await collectFiles([path], predicate);
-      for (const file of files) {
-        specifiers.push(toFileUrl(resolve(file)));
-      }
-    } else {
-      specifiers.push(toFileUrl(resolve(path)));
-    }
-  }
-
-  for (const url of urls) {
-    specifiers.push(url);
-  }
-
-  return specifiers;
-}
-
-function handleIndex(request, options) {
-  const body = `
-    <html>
+  const handleIndex = (request) => {
+    const body = `
+      <html>
       <head>
-      <title>sponsor test</title>
-      <script type="module">
-        // TODO(caspervonb): support injecting a full runtime polyfill.
-        const tests = [];
-        globalThis.Deno = {
-          noColor: ${Deno.noColor},
-          test(t, fn) {
+        <script type="module">
+          const registry = [];
+          const test = Object.assign(function(t, fn) {
             let test = null;
 
-            // TODO(caspervonb) sanitizers and permissions are ignored but can
-            // we emulate any of them?
             const defaults = {
               ignore: false,
               only: false,
@@ -150,295 +101,368 @@ function handleIndex(request, options) {
               if (!t.name) {
                 throw new TypeError("The test name can't be empty");
               }
-
               test = { ...defaults, ...t };
             }
+            registry.push(test);
+          }, {
+            registry
+          });
 
-            tests.push(test);
+          globalThis.Deno = {
+            noColor: ${Deno.noColor},
+            test,
+          };
+        </script>
+      </head>
+      <body></body>
+      </html>
+    `;
+
+    return request.respond({
+      body,
+    });
+  };
+
+  const handleFavicon = (request) => {
+    return request.respond({
+      body: "",
+    });
+  };
+
+  const handleProxy = (request) => {
+    Deno.writeAllSync(
+      Deno.stderr,
+      new TextEncoder().encode(`Proxy ${request.url}\n`),
+    );
+
+    const inspector = new URL("./web/inspector.js", import.meta.url);
+    const body = `
+      import { open, close, inspect } from "${inspector}";
+
+      function error(exceptionDetails) {
+        // TODO(caspervonb): make this an error
+        return new Error(JSON.stringify(exceptionDetails));
+      }
+
+      function retry(fn, ms, attempts) {
+        return new Promise(resolve => {
+          fn()
+          .then(resolve)
+          .catch((error) => {
+            setTimeout(() => {
+              retry(fn, ms,).then(resolve);
+            }, ms);
+          });
+        });
+      }
+
+      const target = await retry(() => {
+        return open("http://localhost:8080");
+      }, 1000, 10);
+
+      const inspector = inspect(target.webSocketDebuggerUrl);
+      await inspector.send("Runtime.enable");
+
+      {
+        const evaluateReturnObject = await inspector.send("Runtime.evaluate", {
+          expression: \`
+            new Promise((resolve, reject) => {
+              if (document.readyState == "complete") {
+                resolve();
+              } else {
+                window.addEventListener('load', resolve);
+                window.addEventListener('error', reject);
+              }
+            })
+          \`,
+          awaitPromise: true,
+        });
+
+        if (evaluateReturnObject.exceptionDetails) {
+          throw error(evaluateReturnObject.exceptionDetails);
+        }
+      }
+
+    {
+      const evaluateReturnObject = await inspector.send(
+        "Runtime.evaluate", {
+          expression: "import('http://localhost:8080/${request.url.slice(1)}')",
+          awaitPromise: true,
+        },
+      );
+
+      if (evaluateReturnObject.exceptionDetails) {
+        throw error(evaluateReturnObject.exceptionDetails);
+      }
+    }
+
+      const evaluateReturnObject = await inspector.send("Runtime.evaluate", {
+        expression: "Deno.test.registry",
+      });
+
+      if (evaluateReturnObject.exceptionDetails) {
+        throw error(evaluateReturnObject.exceptionDetails);
+      }
+
+      const getPropertiesReturnObject = await inspector.send("Runtime.getProperties", {
+        objectId: evaluateReturnObject.result.objectId,
+        ownProperties: true,
+      });
+
+      if (getPropertiesReturnObject.exceptionDetails) {
+        throw error(getPropertiesReturnObject.exceptionDetails);
+      }
+
+      for (const propertyDescriptor of getPropertiesReturnObject.result) {
+        if (!propertyDescriptor.enumerable) {
+          continue;
+        }
+
+        const getPropertiesReturnObject = await inspector.send("Runtime.getProperties", {
+          objectId: propertyDescriptor.value.objectId,
+          ownProperties: true,
+        });
+
+        if (getPropertiesReturnObject.exceptionDetails) {
+          throw error(getPropertiesReturnObject.exceptionDetails);
+        }
+
+        const definition = {
+          name: "unknown",
+          ignore: false,
+          once: false,
+          fn: function() {
+            throw new Error("test function is not defined");
           },
         };
 
-        const dispatchTestEvent = (event) => {
-          const url = location.origin + "/event";
-          return fetch(url, {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json'
-             },
-             body: JSON.stringify(event),
-          });
-        };
+        for (const propertyDescriptor of getPropertiesReturnObject.result) {
+          if (propertyDescriptor.value.type == "function") {
+            definition[propertyDescriptor.name] = async function() {
+              const callFunctionOnResultObject = await inspector.send("Runtime.callFunctionOn", {
+                functionDeclaration: "function() { return this.call(undefined, arguments); }",
+                objectId: propertyDescriptor.value.objectId,
+                arguments: Array.from(arguments),
+                awaitPromise: true,
+              });
 
-        const dispatchClose = (event) => {
-          // Ensure all pending promises are delivered before closing.
-          return fetch("http://localhost:8080/close", {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json'
-             },
-             body: "{}",
-          });
-        };
+              const { exceptionDetails } = callFunctionOnResultObject;
+              if (exceptionDetails) {
+                const callFunctionOnResultObject = await inspector.send("Runtime.callFunctionOn", {
+                  functionDeclaration: "function() { return this.message.toString() + this.stack.toString() }",
+                  objectId: exceptionDetails.exception.objectId,
+                  returnByValue: true,
+                });
 
-        const createTestFilter = (filter) => {
-          return (def) => {
-            if (filter) {
-              if (filter.startsWith("/") && filter.endsWith("/")) {
-                const regex = new RegExp(filter.slice(1, filter.length - 1));
-                return regex.test(def.name);
+                throw callFunctionOnResultObject.result.value;
               }
-
-              return def.name.includes(filter);
-            }
-
-            return true;
-          };
-        };
-
-        const run = function({ ignore, fn }) {
-          if (ignore) {
-            return "ignored";
-          }
-
-          try {
-            fn();
-          } catch (error) {
-            // TODO(caspervonb): match Deno's pretty error output
-            return { failed: [String(error.message), String(error.stack)].join("\\n") };
-          }
-
-          return "ok";
-        };
-
-        const filter = ${JSON.stringify(options.filter)};
-        // TODO(caspervonb): run modules in parallel.
-        const specifiers = ${JSON.stringify(options.specifiers)};
-        for (const specifier of specifiers) {
-          // TODO(caspervonb): run modules in isolation.
-          tests.splice(0, tests.length);
-
-          await import(specifier);
-
-          const only = tests.filter((test) => test.only);
-          const filtered = (only.length > 0 ? only : tests).filter(createTestFilter(filter));
-
-          // TODO(caspervonb): shuffle filtered tests
-
-          await dispatchTestEvent({
-            plan: {
-              origin: specifier,
-              total: filtered.length,
-              filteredOut: tests.length - filtered.length,
-              usedOnly: only.length > 0,
-            },
-          });
-
-          for (const test of filtered) {
-            const description = {
-              origin: specifier,
-              name: test.name,
             };
-            const earlier = Date.now();
-
-            await dispatchTestEvent({ wait: description });
-
-            const result = await run(test);
-            const elapsed = Date.now() - earlier;
-
-            await dispatchTestEvent({ result: [description, result, elapsed] });
+          } else if (typeof propertyDescriptor.value.value != "undefined") {
+            definition[propertyDescriptor.name] = propertyDescriptor.value.value;
           }
         }
 
-        dispatchClose();
-      </script>
-      </head>
-
-      <body>
-      </body>
-    </html>
-  `;
-
-  return request.respond({
-    body,
-  });
-}
-
-async function handleEvent(request, callback) {
-  request.respond({
-    status: 200,
-  });
-
-  const body = await Deno.readAll(request.body);
-  const event = JSON.parse(new TextDecoder().decode(body));
-  callback(event);
-}
-
-function needsEmit(path) {
-  return (
-    path.endsWith(".js") ||
-    path.endsWith(".jsx") ||
-    path.endsWith(".ts") ||
-    path.endsWith(".tsx")
-  );
-}
-
-const modules = {};
-async function handleFile(request, path) {
-  try {
-    if (needsEmit(path)) {
-      const url = toFileUrl(resolve(path + ".js"));
-      if (!modules[url]) {
-        // TODO(diagnostics)
-        const { _diagnostics, files } = await Deno.emit(path, {
-          compilerOptions: {
-            sourceMap: false,
-            inlineSources: true,
-            inlineSourceMap: true,
-          },
-        });
-
-        Object.assign(modules, files);
+        Deno.test(definition);
       }
 
-      const headers = new Headers();
-      headers.set("Content-Type", "text/javascript");
-      const body = modules[url];
+      const internal = Deno[Deno.internal];
+      const { runTests } = internal;
+      internal.runTests = function() {
+        return runTests.apply(internal, arguments).finally(() => {
+          inspector.close();
+        });
+      };
+    `;
 
-      request.respond({
-        headers,
-        body,
-      });
-    } else {
-      request.respond(await serveFile(request, path));
-    }
-  } catch (error) {
-    request.respond({
-      body: error.message,
+    return request.respond({
+      headers: new Headers({
+        "Content-Type": "text/javascript",
+      }),
+      body,
     });
-  }
+  };
+
+  const emitCache = {};
+  const handleEmit = async (request) => {
+    Deno.writeAllSync(
+      Deno.stderr,
+      new TextEncoder().encode(`Emit ${request.url}\n`),
+    );
+
+    const url = toFileUrl(normalizeFilePath(request.url));
+    const key = url + ".js";
+    if (!emitCache[key]) {
+      const { diagnostics, files } = await Deno.emit(url, {
+        check,
+        compilerOptions: {
+          sourceMap: false,
+          inlineSources: true,
+          inlineSourceMap: true,
+        },
+      });
+
+      // TODO(caspervonb) main diagnostics should come from Deno.
+      for (const diagnostic of diagnostics) {
+        if (diagnostic.category == Deno.DiagnosticCategory.Error) {
+          throw new SyntaxError(diagnostic.messageText);
+        }
+      }
+
+      Object.assign(emitCache, files);
+    }
+
+    const body = emitCache[key];
+    if (!body) {
+      return request.respond({
+        status: 404,
+        body: "Not found",
+      });
+    }
+
+    return request.respond({
+      headers: new Headers({
+        "Content-Type": "text/javascript",
+      }),
+      body,
+    });
+  };
+
+  const handleFile = (request) => {
+    Deno.writeAllSync(
+      Deno.stderr,
+      new TextEncoder().encode(`Serve ${request.url}\n`),
+    );
+
+    const path = normalizeFilePath(request.url);
+    return serveFile(request, path).then((response) => {
+      return request.respond(response);
+    }).catch((error) => {
+      return request.respond({ body: error.message });
+    });
+  };
+
+  return function handleRequest(request) {
+    if (request.url == "/") {
+      return handleIndex(request);
+    }
+
+    if (request.url == "/favicon.ico") {
+      return handleFavicon(request);
+    }
+
+    const isDeno = request
+      .headers
+      .get("user-agent")
+      .toLowerCase()
+      .includes("deno");
+
+    const isTest = isTestSpecifier(request.url) || isTestInput(request.url);
+    if (isDeno && isTest) {
+      return handleProxy(request);
+    }
+
+    if (!isDeno && isEmitSpecifier(request.url)) {
+      return handleEmit(request);
+    }
+
+    return handleFile(request);
+  };
 }
 
 export async function run(options) {
+  const args = [];
+  if (!options.check) {
+    args.push("--no-check");
+  }
+
+  if (options.inputs) {
+    args.push(...options.inputs);
+  }
+
+  // When no browser is provided, we just pass-through to deno.
   if (!options.browser) {
-    // TODO(caspervonb): pass-through
-    return;
-  }
+    const process = Deno.run({
+      cmd: [
+        Deno.execPath(),
+        "test",
+        ...args,
+      ],
+      stdout: "inherit",
+      stderr: "inherit",
+    });
 
-  if (options.inputs.length == 0) {
-    options.inputs.push(".");
-  }
-
-  const specifiers = (await collectSpecifiers(options.inputs, (path) => {
-    const base = basename(path);
-
-    return (
-      base.endsWith("_test.ts") ||
-      base.endsWith("_test.tsx") ||
-      base.endsWith("_test.js") ||
-      base.endsWith("_test.mjs") ||
-      base.endsWith("_test.jsx") ||
-      base.endsWith(".test.ts") ||
-      base.endsWith(".test.tsx") ||
-      base.endsWith(".test.js") ||
-      base.endsWith(".test.mjs") ||
-      base.endsWith(".test.jsx") ||
-      base == "test.ts" ||
-      base == "test.tsx" ||
-      base == "test.js" ||
-      base == "test.mjs" ||
-      base == "test.jsx"
-    );
-  })).map((specifier) => {
-    if (specifier.protocol == "file:") {
-      return new URL(
-        specifier.pathname.slice(Deno.cwd().length + 1),
-        "http://localhost:8080",
-      ).toString();
+    const status = await process.status();
+    if (status.code != 0) {
+      throw new Error("Process exited with non-zero status code");
     }
 
-    return specifier.toString();
-  });
+    return;
+  }
 
   // TODO(caspervonb): use port 0.
   // TODO(caspervonb): support https, or preferably make sure that the browsers
   // treat this as https (allowing WebAssembly et cetera, etc).
   const port = 8080;
   const server = await serve({ port });
+  const handleRequest = createRequestHandler(options);
+  (async () => {
+    for await (const request of server) {
+      handleRequest(request);
+    }
+  })();
+
   const browser = await browse({
-    url: `http://localhost:${port}`,
     ...options,
   });
 
-  const reporter = createReporter();
-  const summary = {
-    passed: 0,
-    ignored: 0,
-    failed: 0,
-    failures: [],
-  };
+  const importMap = await Deno.makeTempFile({
+    prefix: "import_map-",
+    suffix: ".json",
+  });
 
-  let closing = false;
-  for await (const request of server) {
-    switch (request.url) {
-      case "/":
-        handleIndex(request, { specifiers });
-        break;
-
-      case "/event":
-        handleEvent(request, (event) => {
-          if (event.plan) {
-            reporter.reportPlan(event.plan);
-            summary.total += event.plan.total;
-          }
-
-          if (event.wait) {
-            reporter.reportWait(event.wait);
-          }
-
-          if (event.result) {
-            const [description, result, duration] = event.result;
-
-            if (result == "ok") {
-              summary.passed += 1;
-            }
-
-            if (result == "ignored") {
-              summary.ignored += 1;
-            }
-
-            if (result.failed) {
-              summary.failed += 1;
-              summary.failures.push([description, result.failed]);
-            }
-
-            reporter.reportResult(description, result, duration);
-          }
-        });
-        break;
-
-      case "/close":
-        await request.respond({ status: 200 });
-        closing = true;
-        break;
-
-      default:
-        handleFile(request, "./" + request.url.slice(1));
-        break;
-    }
-
-    if (closing) {
-      break;
-    }
+  if (Deno.build.os == "windows") {
+    await Deno.writeTextFile(
+      importMap,
+      JSON.stringify({
+        imports: {
+          "file:///C:/": `http://localhost:${port}/C:/`,
+          "file:///D:/": `http://localhost:${port}/D:/`,
+        },
+      }),
+    );
+  } else {
+    await Deno.writeTextFile(
+      importMap,
+      JSON.stringify({
+        imports: {
+          "file:///": `http://localhost:${port}/`,
+        },
+      }),
+    );
   }
 
-  reporter.reportSummary(summary);
+  const tester = Deno.run({
+    cmd: [
+      Deno.execPath(),
+      "test",
+      "--reload",
+      "--allow-all",
+      "--unstable",
+      "--import-map=" + importMap,
+      ...args,
+    ],
+    stdout: "inherit",
+    stderr: "inherit",
+  });
 
-  if (reporter.failed > 0) {
-    throw new Error("test failed");
-  }
+  const status = await tester.status();
 
   server.close();
   browser.close();
+
+  if (status.code != 0) {
+    throw new Error("Process exited with non-zero status code");
+  }
 }
 
 export default async function main(argv) {
@@ -446,47 +470,30 @@ export default async function main(argv) {
     return 0;
   }
 
-  // TODO(caspervonb): support shuffle.
   const {
     browser,
     headless,
     filter,
+    check,
     _: inputs,
   } = parse(argv, {
     boolean: [
       "headless",
+      "check",
     ],
     string: [
       "filter",
     ],
+    default: {
+      "check": true,
+    },
   });
-
-  // Pass-through to Deno when a browser is not specified.
-  if (!browser) {
-    const process = Deno.run({
-      cmd: [
-        Deno.execPath(),
-        "test",
-        ...argv,
-      ],
-      stdout: "inherit",
-      stderr: "inherit",
-    });
-
-    const status = await process.status();
-    Deno.exit(status.code);
-  }
-
-  if (!["chrome", "firefox"].includes(browser)) {
-    throw new Error(
-      `Invalid browser value ${browser}, valid options are 'chrome' and 'firefox'`,
-    );
-  }
 
   await run({
     browser,
     headless,
     filter,
+    check,
     inputs,
   });
 }

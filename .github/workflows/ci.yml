@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        deno: [1.x, canary]
+        deno: [canary]
         os: [macOS-latest, windows-latest, ubuntu-latest]
 
     steps:
