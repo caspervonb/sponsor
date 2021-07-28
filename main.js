@@ -1,7 +1,7 @@
 #!/usr/bin/env deno -S --allow-all --unstable
 
 const commands = {
-  "test": await import("./test.js"),
+  "test": await import("./tools/test.js"),
 };
 
 try {

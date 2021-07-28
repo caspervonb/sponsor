@@ -2,12 +2,12 @@ import { assertMatch } from "https://deno.land/std@0.102.0/testing/asserts.ts";
 
 const tests = [
   {
-    input: ["testdata/test/pass.ts"],
-    output: "testdata/test/pass.out",
+    input: ["tools/testdata/test/pass.ts"],
+    output: "tools/testdata/test/pass.out",
   },
   {
-    input: ["testdata/test/ignore.ts"],
-    output: "testdata/test/ignore.out",
+    input: ["tools/testdata/test/ignore.ts"],
+    output: "tools/testdata/test/ignore.out",
   },
 ];
 
