@@ -14,7 +14,7 @@ import {
 // it cached ahead of time.
 import "./web/inspector.js";
 
-function createRequestHandler({ inputs = [] }) {
+function createRequestHandler({ check, inputs = [] }) {
   const normalizeFilePath = (url) => {
     if (url.startsWith("/C:/")) {
       return url.slice(1);
@@ -293,6 +293,7 @@ function createRequestHandler({ inputs = [] }) {
     const key = url + ".js";
     if (!emitCache[key]) {
       const { diagnostics, files } = await Deno.emit(url, {
+        check,
         compilerOptions: {
           sourceMap: false,
           inlineSources: true,
@@ -369,13 +370,22 @@ function createRequestHandler({ inputs = [] }) {
 }
 
 export async function run(options) {
+  const args = [];
+  if (!options.check) {
+    args.push("--no-check");
+  }
+
+  if (options.inputs) {
+    args.push(...options.inputs);
+  }
+
   // When no browser is provided, we just pass-through to deno.
   if (!options.browser) {
     const process = Deno.run({
       cmd: [
         Deno.execPath(),
         "test",
-        ...inputs,
+        ...args,
       ],
       stdout: "inherit",
       stderr: "inherit",
@@ -439,7 +449,7 @@ export async function run(options) {
       "--allow-all",
       "--unstable",
       "--import-map=" + importMap,
-      ...options.inputs,
+      ...args,
     ],
     stdout: "inherit",
     stderr: "inherit",
@@ -464,27 +474,26 @@ export default async function main(argv) {
     browser,
     headless,
     filter,
+    check,
     _: inputs,
   } = parse(argv, {
     boolean: [
       "headless",
+      "check",
     ],
     string: [
       "filter",
     ],
+    default: {
+      "check": true,
+    },
   });
-
-  // Pass-through to Deno when a browser is not specified.
-  if (!["chrome", "firefox"].includes(browser)) {
-    throw new Error(
-      `Invalid browser value ${browser}, valid options are 'chrome' and 'firefox'`,
-    );
-  }
 
   await run({
     browser,
     headless,
     filter,
+    check,
     inputs,
   });
 }
