@@ -369,6 +369,7 @@ function createRequestHandler({ check, inputs = [] }) {
   };
 }
 
+export const description = "Run tests";
 export async function run(options) {
   const args = [];
   if (!options.check) {
