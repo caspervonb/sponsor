@@ -30,7 +30,13 @@ There is also a canary version available, which you can install with this comman
 deno install --allow-all --unstable https://sponsor.land/main.js
 ```
 
-## Usage
+## Tools
+
+### Test
+
+The `test` tool provides a fairly magical test runner which runs tests with deno's test
+runner but swaps out the harness with one that runs the tests in the browser with the help of the web
+inspector protocol.
 
 Run a test suite in headless Chrome:
 
