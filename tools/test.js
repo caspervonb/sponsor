@@ -2,7 +2,7 @@
 
 import { serve } from "https://deno.land/std@0.102.0/http/server.ts";
 import { serveFile } from "https://deno.land/std@0.102.0/http/file_server.ts";
-import { browse } from "./web/browser.ts";
+import { browse } from "../web/browser.ts";
 import { parse } from "https://deno.land/std@0.102.0/flags/mod.ts";
 import {
   relative,
@@ -12,7 +12,7 @@ import {
 
 // The web inspector is used in generated code, so we include it here to have
 // it cached ahead of time.
-import "./web/inspector.js";
+import "../web/inspector.js";
 
 function createRequestHandler({ check, inputs = [] }) {
   const normalizeFilePath = (url) => {
@@ -135,7 +135,7 @@ function createRequestHandler({ check, inputs = [] }) {
       new TextEncoder().encode(`Proxy ${request.url}\n`),
     );
 
-    const inspector = new URL("./web/inspector.js", import.meta.url);
+    const inspector = new URL("../web/inspector.js", import.meta.url);
     const body = `
       import { open, close, inspect } from "${inspector}";
 
