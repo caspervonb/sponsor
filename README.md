@@ -49,3 +49,7 @@ Run a test suite in headless Firefox:
 ```shell
 sponsor test --headless --browser firefox
 ```
+
+## There's no license?
+
+No, there is not.
