@@ -2,6 +2,7 @@
 
 const commands = {
   "test": await import("./tools/test.js"),
+  "me": await import("./tools/me.js"),
 };
 
 try {
