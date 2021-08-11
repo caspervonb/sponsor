@@ -8,6 +8,19 @@ export interface BrowseOptions {
   headless?: boolean;
 }
 
+export async function open(url: string) {
+  const cmds = {
+    windows: "explorer",
+    darwin: "open",
+    linux: "xdg-open",
+  };
+
+  const process = Deno.run({ cmd: [cmds[Deno.build.os], url] });
+  await process.status();
+
+  process.close();
+}
+
 export function browse(options: BrowseOptions): Deno.Process {
   return Deno.run({
     cmd: [

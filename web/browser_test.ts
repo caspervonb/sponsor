@@ -2,7 +2,7 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
 import { serve } from "https://deno.land/std/http/server.ts";
 
-import { browse } from "./browser.ts";
+import { open, browse } from "./browser.ts";
 
 Deno.test("browseChrome", async function () {
   const server = await serve({ port: 8080 });
@@ -37,5 +37,18 @@ Deno.test("browseFirefox", async function () {
   }
 
   browser.close();
+  server.close();
+});
+
+Deno.test("open", async function () {
+  const server = await serve({ port: 8080 });
+  await open("http://localhost:8080");
+
+  for await (const request of server) {
+    await request.respond({ body: "" });
+    assertEquals(request.url, "/");
+    break;
+  }
+
   server.close();
 });
